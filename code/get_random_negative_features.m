@@ -34,12 +34,12 @@ function features_neg = get_random_negative_features(non_face_scn_path, feature_
 
 image_files = dir( fullfile( non_face_scn_path, '*.jpg' ));
 num_images = length(image_files);
-fprintf('In directory %s, %d non-face images are found.\n', non_face_scn_path, num_images);
+fprintf('In directory %s, %d non-face images are found, ', non_face_scn_path, num_images);
 
 % placeholder to be deleted
-samp_per_img = int32(num_samples / num_images);
-features_neg = rand(samp_per_img * num_images, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+features_neg = zeros(0, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
 
+cell_num = feature_params.template_size / feature_params.hog_cell_size;
 for img_i = 1 : num_images
     full_dir = fullfile( non_face_scn_path, image_files(img_i).name);
     img_color = imread(full_dir);
@@ -47,11 +47,15 @@ for img_i = 1 : num_images
     img_single = im2single(img_gray);    % convert image to single precision, e.g. 255 to 1.0
     height = size(img_gray, 1);
     width = size(img_gray, 2);
-    for samp_i = 1 : samp_per_img
-        lefttop_x = randi([1 width - feature_params.template_size],1,1);
-        lefttop_y = randi([1 height - feature_params.template_size],1,1);
-        template = img_single(lefttop_y : lefttop_y + feature_params.template_size - 1, lefttop_x : lefttop_x + feature_params.template_size - 1);
-        hog = vl_hog(template, feature_params.hog_cell_size);
-        features_neg((img_i - 1) * samp_per_img + samp_i, :) = reshape(hog, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31); 
+    
+    hog = vl_hog(img_single, feature_params.hog_cell_size);
+    
+    for left = 1 : cell_num : (size(hog, 2) - cell_num + 1)
+        for top = 1 : cell_num : (size(hog, 1) - cell_num + 1)
+            hog_in_window = hog(top : top + cell_num - 1, left : left + cell_num - 1, :);
+            hog_in_window = reshape(hog_in_window, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+            features_neg = [features_neg; hog_in_window];
+        end
     end
 end
+fprintf('%d non-face templates are sampled.\n', length(features_neg));
