@@ -48,7 +48,7 @@ confidences = zeros(0,1);
 image_ids = cell(0,1);
 
 % parameter
-threshold = 0.5;
+threshold = 0.2;
 sample_acceleration = 0.9;
 
 

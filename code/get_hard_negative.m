@@ -7,7 +7,7 @@ hard_neg = [];
 
 % parameter
 threshold = 1;
-sample_acceleration = 0.7;
+sample_acceleration = 0.9;
 cell_num = feature_params.template_size / feature_params.hog_cell_size;
 
 

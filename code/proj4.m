@@ -130,13 +130,22 @@ features_neg = [features_neg; false_hard_negatives];
 num_positive_examples = size(features_pos,1);
 num_negative_examples = size(features_neg,1);
 lambda = 0.00005;
-[w,b] = vl_svmtrain([features_pos' features_neg'],[ones(1,num_positive_examples) -ones(1,num_negative_examples)],lambda);
+[w_hard,b_hard] = vl_svmtrain([features_pos' features_neg'],[ones(1,num_positive_examples) -ones(1,num_negative_examples)],lambda);
 
 %% Step 5. Run detector on test set.
 % YOU CODE 'run_detector'. Make sure the outputs are properly structured!
 % They will be interpreted in Step 6 to evaluate and visualize your
 % results. See run_detector.m for more details.
-[bboxes, confidences, image_ids] = run_detector(test_scn_path, w, b, feature_params);
+add_hard_negative = true;
+
+w_detec = w;
+b_detec = b;
+if add_hard_negative
+    w_detec = w_hard;
+    b_detec = b_hard;
+end
+
+[bboxes, confidences, image_ids] = run_detector(test_scn_path, w_detec, b_detec, feature_params);
 
 % run_detector will have (at least) two parameters which can heavily
 % influence performance -- how much to rescale each step of your multiscale
