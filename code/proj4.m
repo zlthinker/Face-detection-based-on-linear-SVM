@@ -52,7 +52,7 @@ label_path = fullfile(data_path,'test_scenes/ground_truth_bboxes.txt'); %the gro
 %add other fields to this struct if you want to modify HoG default
 %parameters such as the number of orientations, but that does not help
 %performance in our limited test.
-feature_params = struct('template_size', 36, 'hog_cell_size', 6);
+feature_params = struct('template_size', 36, 'hog_cell_size', 4);
 
 
 %% Step 1. Load positive training crops and random negative examples
@@ -62,7 +62,6 @@ features_pos = get_positive_features( train_path_pos, feature_params );
 
 num_negative_examples = 10000; %Higher will work strictly better, but you should start with 10000 for debugging
 features_neg = get_random_negative_features( non_face_scn_path, feature_params, num_negative_examples);
-
     
 %% step 2. Train Classifier
 % Use vl_svmtrain on your training features to get a linear classifier
@@ -75,7 +74,7 @@ features_neg = get_random_negative_features( non_face_scn_path, feature_params, 
 %num_positive_examples = 6713;
 num_positive_examples = size(features_pos,1);
 num_negative_examples = size(features_neg,1);
-lambda = 0.0001;
+lambda = 0.00005;
 [w,b] = vl_svmtrain([features_pos' features_neg'],[ones(1,num_positive_examples) -ones(1,num_negative_examples)],lambda);
 
 %YOU CODE classifier training. Make sure the outputs are 'w' and 'b'.
@@ -125,6 +124,13 @@ imwrite(hog_template_image, 'visualizations/hog_template.png')
 % you probably want to modify 'run_detector', run the detector on the
 % images in 'non_face_scn_path', and keep all of the features above some
 % confidence level.
+
+false_hard_negatives = get_hard_negative(non_face_scn_path, w, b, feature_params);
+features_neg = [features_neg; false_hard_negatives];
+num_positive_examples = size(features_pos,1);
+num_negative_examples = size(features_neg,1);
+lambda = 0.00005;
+[w,b] = vl_svmtrain([features_pos' features_neg'],[ones(1,num_positive_examples) -ones(1,num_negative_examples)],lambda);
 
 %% Step 5. Run detector on test set.
 % YOU CODE 'run_detector'. Make sure the outputs are properly structured!

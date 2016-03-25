@@ -30,18 +30,21 @@ function features_pos = get_positive_features(train_path_pos, feature_params)
 
 image_files = dir( fullfile( train_path_pos, '*.jpg') ); %Caltech Faces stored as .jpg
 num_images = length(image_files);
-fprintf('In directory %s, %d face images are found.\n', train_path_pos, num_images);
+fprintf('In directory %s, %d face images are found, ', train_path_pos, num_images);
 
 % placeholder to be deleted
-features_pos = rand(num_images, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+features_pos = rand(num_images * 2, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
 
 for img_i = 1 : num_images
     full_dir = fullfile( train_path_pos, image_files(img_i).name);
     img = imread(full_dir);
     img_single = im2single(img);    % convert image to single precision, e.g. 255 to 1.0
     hog = vl_hog(img_single, feature_params.hog_cell_size);
-    features_pos(img_i, :) = reshape(hog, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);   
+    img_reverse = fliplr(img_single);
+    hog_reverse = vl_hog(img_reverse, feature_params.hog_cell_size);
+    features_pos(img_i, :) = reshape(hog, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+    features_pos(img_i + 1, :) = reshape(hog_reverse, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
 end
 
-
+fprintf('%d face templates are sampled.\n', length(features_pos));
 

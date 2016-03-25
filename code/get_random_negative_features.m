@@ -34,28 +34,50 @@ function features_neg = get_random_negative_features(non_face_scn_path, feature_
 
 image_files = dir( fullfile( non_face_scn_path, '*.jpg' ));
 num_images = length(image_files);
-fprintf('In directory %s, %d non-face images are found, ', non_face_scn_path, num_images);
+fprintf('In directory %s, %d non-face images are found...\n', non_face_scn_path, num_images);
 
 % placeholder to be deleted
 features_neg = zeros(0, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
 
 cell_num = feature_params.template_size / feature_params.hog_cell_size;
+
+%parameters
+sample_acceleration = 0.7;
+
 for img_i = 1 : num_images
     full_dir = fullfile( non_face_scn_path, image_files(img_i).name);
+    fprintf('[%d]Sample from non-face image %s...\n', img_i, full_dir);
     img_color = imread(full_dir);
     img_gray = rgb2gray(img_color);
     img_single = im2single(img_gray);    % convert image to single precision, e.g. 255 to 1.0
     height = size(img_gray, 1);
     width = size(img_gray, 2);
+    sample_rate = 1.0;
     
-    hog = vl_hog(img_single, feature_params.hog_cell_size);
-    
-    for left = 1 : cell_num : (size(hog, 2) - cell_num + 1)
-        for top = 1 : cell_num : (size(hog, 1) - cell_num + 1)
-            hog_in_window = hog(top : top + cell_num - 1, left : left + cell_num - 1, :);
-            hog_in_window = reshape(hog_in_window, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+    while min(width, height) * sample_rate >= feature_params.template_size
+        downsample = imresize(img_single, sample_rate);
+        hog = vl_hog(downsample, feature_params.hog_cell_size);
+        temp_h = fix(size(hog, 1) / cell_num);
+        temp_w = fix(size(hog, 2) / cell_num);
+        hog = hog(1:temp_h * cell_num, 1:temp_w*cell_num, :);
+        height_divide = ones(1, temp_h) * cell_num;
+        width_divide = ones(1, temp_w) * cell_num;
+        templates = mat2cell(hog, height_divide, width_divide, 31);
+        templates = reshape(templates, 1, temp_h * temp_w);
+        step = 4;
+%         disp(size(templates));
+        for temp_i = 1:step:size(templates, 2)
+            hog_in_window = reshape(templates{1, temp_i}, 1, cell_num^2 * 31);
             features_neg = [features_neg; hog_in_window];
         end
+        sample_rate = sample_rate * sample_acceleration;
+%         for left = 1 : cell_num * 3 : (size(hog, 2) - cell_num + 1)
+%             for top = 1 : cell_num * 3 : (size(hog, 1) - cell_num + 1)
+%                 hog_in_window = hog(top : top + cell_num - 1, left : left + cell_num - 1, :);
+%                 hog_in_window = reshape(hog_in_window, 1, (feature_params.template_size / feature_params.hog_cell_size)^2 * 31);
+%                 features_neg = [features_neg; hog_in_window];
+%             end
+%         end
     end
 end
-fprintf('%d non-face templates are sampled.\n', length(features_neg));
+fprintf('%d non-face templates are sampled.\n', size(features_neg, 1));
